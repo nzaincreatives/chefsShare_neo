@@ -1,221 +1,116 @@
+
 <!DOCTYPE html>
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>chefsShare_NEO</title>
   <link rel="manifest" href="manifest.json" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
-    :root {
-      --accent: #d260d1;
-      --accent-alt: #5dfaff;
-      --secondary: #55128a;
-      --bg: #000;
-      --text: #fff;
-    }
     body {
       margin: 0;
-      background-color: var(--bg);
-      color: var(--text);
       font-family: Arial, sans-serif;
+      background-color: black;
+      color: white;
     }
-    .container {
-      padding: 2rem;
-      max-width: 800px;
-      margin: 0 auto;
-    }
-    h1, h2 {
-      color: var(--secondary);
-    }
-    form {
-      background-color: #111;
+    header {
+      background-color: #55128a;
       padding: 1rem;
-      margin-bottom: 2rem;
-      border-radius: 10px;
-    }
-    input, textarea {
-      width: 100%;
-      padding: 0.5rem;
-      margin-top: 0.5rem;
-      background: #222;
-      color: var(--text);
-      border: 1px solid var(--accent);
-      border-radius: 5px;
+      text-align: center;
     }
     button {
-      background: var(--accent);
-      color: var(--text);
+      background-color: #d260d1;
+      color: white;
+      padding: 0.5rem 1rem;
       border: none;
-      padding: 0.6rem 1rem;
-      margin-top: 1rem;
-      border-radius: 5px;
+      margin: 0.5rem;
       cursor: pointer;
     }
-    .hidden {
-      display: none;
-    }
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .recipe {
-      background-color: #111;
-      border-left: 5px solid var(--accent-alt);
+    .recipe-form, .recipe-list {
       padding: 1rem;
-      margin-bottom: 1rem;
-      border-radius: 5px;
-    }
-    #searchInput {
-      width: 100%;
-      padding: 0.75rem;
-      margin: 1rem 0;
-      background-color: #111;
-      border: 1px solid var(--accent-alt);
-      border-radius: 5px;
-      color: white;
     }
     footer {
       text-align: center;
       padding: 1rem;
-      font-size: 0.9rem;
-      color: var(--accent-alt);
+      background-color: #55128a;
+      font-size: 0.8rem;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div id="loginSection">
-      <h1>chefsShare_NEO</h1>
-      <form id="loginForm">
-        <label>Benutzername</label>
-        <input id="username" type="text" required />
-        <label>Passwort</label>
-        <input id="password" type="password" required />
-        <button type="submit">Login</button>
-      </form>
-    </div>
-    <div id="appSection" class="hidden">
-      <div class="header">
-        <h1>chefsShare_NEO</h1>
-        <button onclick="toggleForm()">+ Rezept</button>
-      </div>
-      <input id="searchInput" type="text" placeholder="Rezept suchen..." oninput="searchRecipes()" />
-      <form id="recipeForm" class="hidden">
-        <label>Titel</label>
-        <input id="title" required />
-        <label>Zutaten</label>
-        <textarea id="ingredients" rows="3" required></textarea>
-        <label>Zubereitung</label>
-        <textarea id="instructions" rows="4" required></textarea>
-        <label>Autor</label>
-        <input id="author" required />
-        <button type="submit">Rezept speichern</button>
-      </form>
-      <div id="recipesContainer"></div>
-    </div>
+  <header>
+    <h1>chefsShare_NEO</h1>
+    <button onclick="showForm()">+ Rezept hinzufügen</button>
+  </header>
+
+  <div class="recipe-form" style="display:none;">
+    <input id="title" placeholder="Titel" /><br/>
+    <textarea id="ingredients" placeholder="Zutaten"></textarea><br/>
+    <textarea id="instructions" placeholder="Anleitung"></textarea><br/>
+    <input id="author" placeholder="Autor" /><br/>
+    <button onclick="saveRecipe()">Speichern</button>
   </div>
-  <footer>&copy; nzain creatives</footer>
-  <script>
-    const loginSection = document.getElementById("loginSection");
-    const appSection = document.getElementById("appSection");
-    const recipeForm = document.getElementById("recipeForm");
-    const recipesContainer = document.getElementById("recipesContainer");
-    let recipes = JSON.parse(localStorage.getItem("recipes")) || [];
-    document.getElementById("loginForm").addEventListener("submit", e => {
-      e.preventDefault();
-      const user = document.getElementById("username").value.trim();
-      const pass = document.getElementById("password").value.trim();
-      if (user && pass) {
-        loginSection.classList.add("hidden");
-        appSection.classList.remove("hidden");
-        renderRecipes();
-      }
-    });
-    document.getElementById("recipeForm").addEventListener("submit", e => {
-      e.preventDefault();
-      const recipe = {
-        title: document.getElementById("title").value,
-        ingredients: document.getElementById("ingredients").value,
-        instructions: document.getElementById("instructions").value,
-        author: document.getElementById("author").value,
-        comment: ""
-      };
-      recipes.push(recipe);
-      localStorage.setItem("recipes", JSON.stringify(recipes));
-      recipeForm.reset();
-      recipeForm.classList.add("hidden");
-      renderRecipes();
-    });
-    function toggleForm() {
-      recipeForm.classList.toggle("hidden");
-    }
-    function renderRecipes(list = recipes) {
-      recipesContainer.innerHTML = "";
-      list.forEach((r, index) => {
-        const div = document.createElement("div");
-        div.className = "recipe";
-        div.innerHTML = `
-          <h2>${r.title}</h2>
-          <p><strong>Zutaten:</strong><br>${r.ingredients.replace(/\n/g, "<br>")}</p>
-          <p><strong>Zubereitung:</strong><br>${r.instructions.replace(/\n/g, "<br>")}</p>
-          <p><em>Von ${r.author}</em></p>
-          <textarea maxlength="100" placeholder="Kommentar (max. 100 Zeichen)" oninput="saveComment(${index}, this.value)">${r.comment || ""}</textarea><br>
-          <button onclick="printRecipe(${index})">🖨️ Drucken</button>
-          <button onclick="downloadPDF(${index})">📄 Als PDF</button>
-        `;
-        recipesContainer.appendChild(div);
+
+  <div class="recipe-list" id="recipeList"></div>
+
+  <footer>© nzain creatives</footer>
+
+  
+<!-- Firebase SDKs -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+  import { getFirestore, collection, getDocs, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyB08-0-ppqwbgv1CjIb8cK7zlAys209E6I",
+    authDomain: "chefsshare-290a7.firebaseapp.com",
+    projectId: "chefsshare-290a7",
+    storageBucket: "chefsshare-290a7.firebasestorage.app",
+    messagingSenderId: "976841123078",
+    appId: "1:976841123078:web:dbed562710d4b8e8afaa87",
+    measurementId: "G-XVDW5QLJ27"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  window.db = db;
+</script>
+
+
+  <script type="module">
+    import { collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+    const db = window.db;
+    const recipeList = document.getElementById("recipeList");
+    const form = document.querySelector(".recipe-form");
+
+    window.showForm = () => form.style.display = 'block';
+
+    window.saveRecipe = async () => {
+      const title = document.getElementById("title").value;
+      const ingredients = document.getElementById("ingredients").value;
+      const instructions = document.getElementById("instructions").value;
+      const author = document.getElementById("author").value;
+
+      await addDoc(collection(db, "recipes"), {
+        title, ingredients, instructions, author, created: new Date()
       });
-    }
-    function searchRecipes() {
-      const term = document.getElementById("searchInput").value.toLowerCase();
-      const filtered = recipes.filter(r =>
-        r.title.toLowerCase().includes(term) ||
-        r.ingredients.toLowerCase().includes(term) ||
-        r.author.toLowerCase().includes(term)
-      );
-      renderRecipes(filtered);
-    }
-    function saveComment(index, value) {
-      recipes[index].comment = value.slice(0, 100);
-      localStorage.setItem("recipes", JSON.stringify(recipes));
-    }
-    function printRecipe(index) {
-      const r = recipes[index];
-      const win = window.open("", "", "width=800,height=600");
-      win.document.write(`<html><head><title>${r.title}</title></head><body>
-        <h2>${r.title}</h2>
-        <p><strong>Zutaten:</strong><br>${r.ingredients.replace(/\n/g, "<br>")}</p>
-        <p><strong>Zubereitung:</strong><br>${r.instructions.replace(/\n/g, "<br>")}</p>
-        <p><strong>Kommentar:</strong><br>${r.comment || "-"}</p>
-        </body></html>`);
-      win.document.close();
-      win.print();
-    }
-    async function downloadPDF(index) {
-      const { jsPDF } = window.jspdf;
-      const r = recipes[index];
-      const doc = new jsPDF();
-      doc.setFontSize(14);
-      doc.text(`Rezept: ${r.title}`, 10, 10);
-      doc.setFontSize(12);
-      doc.text(`Autor: ${r.author}`, 10, 20);
-      doc.text("Zutaten:", 10, 30);
-      doc.text(r.ingredients, 10, 40);
-      doc.text("Zubereitung:", 10, 80);
-      doc.text(r.instructions, 10, 90);
-      if (r.comment) {
-        doc.text("Kommentar:", 10, 130);
-        doc.text(r.comment, 10, 140);
-      }
-      doc.save(`${r.title.replace(/\s+/g, "_")}.pdf`);
-    }
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').then(() => {
-        console.log("✅ Service Worker aktiv");
+
+      form.style.display = 'none';
+    };
+
+    const showRecipes = (snapshot) => {
+      recipeList.innerHTML = '';
+      snapshot.forEach((doc) => {
+        const r = doc.data();
+        const el = document.createElement("div");
+        el.innerHTML = `<h3>${r.title}</h3><p>${r.ingredients}</p><p>${r.instructions}</p><p><em>— ${r.author}</em></p>`;
+        recipeList.appendChild(el);
       });
-    }
+    };
+
+    onSnapshot(collection(db, "recipes"), showRecipes);
   </script>
 </body>
 </html>
