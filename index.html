@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -26,8 +25,21 @@
       margin: 0.5rem;
       cursor: pointer;
     }
+    input, textarea {
+      width: 100%;
+      padding: 0.5rem;
+      margin-bottom: 0.5rem;
+      background-color: #222;
+      color: white;
+      border: 1px solid #5dfaff;
+    }
     .recipe-form, .recipe-list {
       padding: 1rem;
+    }
+    .recipe {
+      border: 1px solid #5dfaff;
+      padding: 1rem;
+      margin-bottom: 1rem;
     }
     footer {
       text-align: center;
@@ -41,13 +53,16 @@
   <header>
     <h1>chefsShare_NEO</h1>
     <button onclick="showForm()">+ Rezept hinzufügen</button>
+    <button onclick="window.print()">🖨️ Drucken</button>
+    <button onclick="exportPDF()">📄 Export als PDF</button>
+    <input id="search" oninput="filterRecipes()" placeholder="🔍 Suche nach Titel oder Autor" />
   </header>
 
   <div class="recipe-form" style="display:none;">
-    <input id="title" placeholder="Titel" /><br/>
-    <textarea id="ingredients" placeholder="Zutaten"></textarea><br/>
-    <textarea id="instructions" placeholder="Anleitung"></textarea><br/>
-    <input id="author" placeholder="Autor" /><br/>
+    <input id="title" placeholder="Titel" />
+    <textarea id="ingredients" placeholder="Zutaten"></textarea>
+    <textarea id="instructions" placeholder="Anleitung"></textarea>
+    <input id="author" placeholder="Autor" />
     <button onclick="saveRecipe()">Speichern</button>
   </div>
 
@@ -55,33 +70,24 @@
 
   <footer>© nzain creatives</footer>
 
-  
-<!-- Firebase SDKs -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-  import { getFirestore, collection, getDocs, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-
-  const firebaseConfig = {
-    apiKey: "AIzaSyB08-0-ppqwbgv1CjIb8cK7zlAys209E6I",
-    authDomain: "chefsshare-290a7.firebaseapp.com",
-    projectId: "chefsshare-290a7",
-    storageBucket: "chefsshare-290a7.firebasestorage.app",
-    messagingSenderId: "976841123078",
-    appId: "1:976841123078:web:dbed562710d4b8e8afaa87",
-    measurementId: "G-XVDW5QLJ27"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
-  window.db = db;
-</script>
-
-
+  <!-- Firebase SDK -->
   <script type="module">
-    import { collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+    import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, Timestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-    const db = window.db;
+    const firebaseConfig = {
+      apiKey: "AIzaSyB08-0-ppqwbgv1CjIb8cK7zlAys209E6I",
+      authDomain: "chefsshare-290a7.firebaseapp.com",
+      projectId: "chefsshare-290a7",
+      storageBucket: "chefsshare-290a7.firebasestorage.app",
+      messagingSenderId: "976841123078",
+      appId: "1:976841123078:web:dbed562710d4b8e8afaa87",
+      measurementId: "G-XVDW5QLJ27"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
     const recipeList = document.getElementById("recipeList");
     const form = document.querySelector(".recipe-form");
 
@@ -94,23 +100,78 @@
       const author = document.getElementById("author").value;
 
       await addDoc(collection(db, "recipes"), {
-        title, ingredients, instructions, author, created: new Date()
+        title, ingredients, instructions, author,
+        created: Timestamp.now(),
+        comments: []
       });
 
       form.style.display = 'none';
     };
 
-    const showRecipes = (snapshot) => {
+    window.exportPDF = () => {
+      const content = document.getElementById("recipeList").innerHTML;
+      const win = window.open('', '', 'height=700,width=700');
+      win.document.write('<html><head><title>Rezepte PDF</title></head><body>');
+      win.document.write(content);
+      win.document.write('</body></html>');
+      win.document.close();
+      win.print();
+    };
+
+    window.filterRecipes = () => {
+      const q = document.getElementById("search").value.toLowerCase();
+      const all = document.querySelectorAll(".recipe");
+      all.forEach(r => {
+        const match = r.innerText.toLowerCase().includes(q);
+        r.style.display = match ? "block" : "none";
+      });
+    };
+
+    const renderRecipes = (snapshot) => {
       recipeList.innerHTML = '';
       snapshot.forEach((doc) => {
         const r = doc.data();
         const el = document.createElement("div");
-        el.innerHTML = `<h3>${r.title}</h3><p>${r.ingredients}</p><p>${r.instructions}</p><p><em>— ${r.author}</em></p>`;
+        el.className = "recipe";
+        el.innerHTML = `
+          <h3>${r.title}</h3>
+          <p><strong>Zutaten:</strong> ${r.ingredients}</p>
+          <p><strong>Anleitung:</strong> ${r.instructions}</p>
+          <p><em>— ${r.author}</em></p>
+          <input maxlength="100" placeholder="Kommentar hinzufügen..." onkeypress="if(event.key==='Enter')addComment('${doc.id}', this)" />
+          <div><strong>Kommentare:</strong><ul>${(r.comments || []).map(c => `<li>${c}</li>`).join('')}</ul></div>
+        `;
         recipeList.appendChild(el);
       });
     };
 
-    onSnapshot(collection(db, "recipes"), showRecipes);
+    window.addComment = async (id, input) => {
+      const docRef = collection(db, "recipes");
+      const docSnap = await onSnapshot(collection(db, "recipes"), () => {});
+      const comment = input.value.trim().substring(0, 100);
+      if (!comment) return;
+
+      const recipeRef = (await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js")).doc;
+      const { getDoc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+      const ref = recipeRef(db, "recipes", id);
+      const d = await getDoc(ref);
+      const current = d.data().comments || [];
+      current.push(comment);
+      await updateDoc(ref, { comments: current });
+      input.value = "";
+    };
+
+    const qRef = query(collection(db, "recipes"), orderBy("created", "desc"));
+    onSnapshot(qRef, renderRecipes);
+  </script>
+
+  <script>
+    // PWA Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log('Service Worker registered.', reg))
+        .catch(err => console.error('SW registration failed', err));
+    }
   </script>
 </body>
 </html>
