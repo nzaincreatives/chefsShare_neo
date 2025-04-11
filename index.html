@@ -1,177 +1,51 @@
 <!DOCTYPE html>
 <html lang="de">
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>chefsShare_NEO</title>
-  <link rel="manifest" href="manifest.json" />
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background-color: black;
-      color: white;
-    }
-    header {
-      background-color: #55128a;
-      padding: 1rem;
-      text-align: center;
-    }
-    button {
-      background-color: #d260d1;
-      color: white;
-      padding: 0.5rem 1rem;
-      border: none;
-      margin: 0.5rem;
-      cursor: pointer;
-    }
-    input, textarea {
-      width: 100%;
-      padding: 0.5rem;
-      margin-bottom: 0.5rem;
-      background-color: #222;
-      color: white;
-      border: 1px solid #5dfaff;
-    }
-    .recipe-form, .recipe-list {
-      padding: 1rem;
-    }
-    .recipe {
-      border: 1px solid #5dfaff;
-      padding: 1rem;
-      margin-bottom: 1rem;
-    }
-    footer {
-      text-align: center;
-      padding: 1rem;
-      background-color: #55128a;
-      font-size: 0.8rem;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>chefsShare_NEO</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <h1>chefsShare_NEO</h1>
-    <button onclick="showForm()">+ Rezept hinzufügen</button>
-    <button onclick="window.print()">🖨️ Drucken</button>
-    <button onclick="exportPDF()">📄 Export als PDF</button>
-    <input id="search" oninput="filterRecipes()" placeholder="🔍 Suche nach Titel oder Autor" />
-  </header>
+    <!-- Login Container -->
+    <div class="login-container" id="loginContainer">
+        <form class="login-form" id="loginForm">
+            <h2>Anmeldung</h2>
+            <input type="text" placeholder="Benutzername" required>
+            <input type="password" placeholder="Passwort" required>
+            <button type="submit">Einloggen</button>
+        </form>
+    </div>
 
-  <div class="recipe-form" style="display:none;">
-    <input id="title" placeholder="Titel" />
-    <textarea id="ingredients" placeholder="Zutaten"></textarea>
-    <textarea id="instructions" placeholder="Anleitung"></textarea>
-    <input id="author" placeholder="Autor" />
-    <button onclick="saveRecipe()">Speichern</button>
-  </div>
+    <!-- Haupt-App (initial versteckt) -->
+    <div class="app-container" id="appContainer">
+        <!-- Header -->
+        <header>
+            <h1>chefsShare<span class="accent">_NEO</span></h1>
+            <button class="btn-accent" id="addRecipeBtn">+ Rezept</button>
+        </header>
 
-  <div class="recipe-list" id="recipeList"></div>
+        <!-- Rezept-Formular -->
+        <form class="recipe-form" id="recipeForm">
+            <h2>Neues Rezept</h2>
+            <input type="text" placeholder="Titel" id="recipeTitle" required>
+            <textarea placeholder="Zutaten (kommagetrennt)" id="recipeIngredients" required></textarea>
+            <textarea placeholder="Anleitung" id="recipeInstructions" required></textarea>
+            <input type="text" placeholder="Autor" id="recipeAuthor" required>
+            <button type="submit" class="btn-secondary">Speichern</button>
+        </form>
 
-  <footer>© nzain creatives</footer>
+        <!-- Rezept-Liste -->
+        <div class="recipes-grid" id="recipesGrid"></div>
 
-  <!-- Firebase SDK -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-    import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, Timestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+        <!-- Copyright Footer -->
+        <footer>
+            <p>&copy; <span class="accent2">nzain creatives</span></p>
+        </footer>
+    </div>
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyB08-0-ppqwbgv1CjIb8cK7zlAys209E6I",
-      authDomain: "chefsshare-290a7.firebaseapp.com",
-      projectId: "chefsshare-290a7",
-      storageBucket: "chefsshare-290a7.firebasestorage.app",
-      messagingSenderId: "976841123078",
-      appId: "1:976841123078:web:dbed562710d4b8e8afaa87",
-      measurementId: "G-XVDW5QLJ27"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    const recipeList = document.getElementById("recipeList");
-    const form = document.querySelector(".recipe-form");
-
-    window.showForm = () => form.style.display = 'block';
-
-    window.saveRecipe = async () => {
-      const title = document.getElementById("title").value;
-      const ingredients = document.getElementById("ingredients").value;
-      const instructions = document.getElementById("instructions").value;
-      const author = document.getElementById("author").value;
-
-      await addDoc(collection(db, "recipes"), {
-        title, ingredients, instructions, author,
-        created: Timestamp.now(),
-        comments: []
-      });
-
-      form.style.display = 'none';
-    };
-
-    window.exportPDF = () => {
-      const content = document.getElementById("recipeList").innerHTML;
-      const win = window.open('', '', 'height=700,width=700');
-      win.document.write('<html><head><title>Rezepte PDF</title></head><body>');
-      win.document.write(content);
-      win.document.write('</body></html>');
-      win.document.close();
-      win.print();
-    };
-
-    window.filterRecipes = () => {
-      const q = document.getElementById("search").value.toLowerCase();
-      const all = document.querySelectorAll(".recipe");
-      all.forEach(r => {
-        const match = r.innerText.toLowerCase().includes(q);
-        r.style.display = match ? "block" : "none";
-      });
-    };
-
-    const renderRecipes = (snapshot) => {
-      recipeList.innerHTML = '';
-      snapshot.forEach((doc) => {
-        const r = doc.data();
-        const el = document.createElement("div");
-        el.className = "recipe";
-        el.innerHTML = `
-          <h3>${r.title}</h3>
-          <p><strong>Zutaten:</strong> ${r.ingredients}</p>
-          <p><strong>Anleitung:</strong> ${r.instructions}</p>
-          <p><em>— ${r.author}</em></p>
-          <input maxlength="100" placeholder="Kommentar hinzufügen..." onkeypress="if(event.key==='Enter')addComment('${doc.id}', this)" />
-          <div><strong>Kommentare:</strong><ul>${(r.comments || []).map(c => `<li>${c}</li>`).join('')}</ul></div>
-        `;
-        recipeList.appendChild(el);
-      });
-    };
-
-    window.addComment = async (id, input) => {
-      const docRef = collection(db, "recipes");
-      const docSnap = await onSnapshot(collection(db, "recipes"), () => {});
-      const comment = input.value.trim().substring(0, 100);
-      if (!comment) return;
-
-      const recipeRef = (await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js")).doc;
-      const { getDoc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
-      const ref = recipeRef(db, "recipes", id);
-      const d = await getDoc(ref);
-      const current = d.data().comments || [];
-      current.push(comment);
-      await updateDoc(ref, { comments: current });
-      input.value = "";
-    };
-
-    const qRef = query(collection(db, "recipes"), orderBy("created", "desc"));
-    onSnapshot(qRef, renderRecipes);
-  </script>
-
-  <script>
-    // PWA Service Worker Registration
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js')
-        .then(reg => console.log('Service Worker registered.', reg))
-        .catch(err => console.error('SW registration failed', err));
-    }
-  </script>
+    <script src="app.js"></script>
 </body>
 </html>
