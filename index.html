@@ -9,15 +9,16 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Login Container -->
-    <div class="login-container" id="loginContainer">
-        <form class="login-form" id="loginForm">
-            <h2>Anmeldung</h2>
-            <input type="text" placeholder="Benutzername" required>
-            <input type="password" placeholder="Passwort" required>
-            <button type="submit">Einloggen</button>
-        </form>
-    </div>
+   <!-- Login/Registrierung Container -->
+<div class="auth-container" id="authContainer">
+  <div class="auth-box">
+    <h2>Team Login</h2>
+    <input type="email" id="email" placeholder="Team-E-Mail">
+    <input type="password" id="password" placeholder="Passwort">
+    <button onclick="login()">Anmelden</button>
+    <button onclick="signup()" class="btn-secondary">Neues Konto</button>
+  </div>
+</div>
 
     <!-- Haupt-App (initial versteckt) -->
     <div class="app-container" id="appContainer">
